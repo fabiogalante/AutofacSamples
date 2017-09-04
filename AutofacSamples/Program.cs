@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Autofac;
 
 namespace AutofacSamples
 {
@@ -12,11 +9,29 @@ namespace AutofacSamples
         void Write(string message);
     }
 
+    public interface IConsole
+    {
+
+    }
+
     public class ConsoleLog : ILog
     {
         public void Write(string message)
         {
             Console.WriteLine(message);
+        }
+    }
+
+  
+
+
+    public class EmailLog : ILog
+    {
+        private const string AdminEmail =  "admin@foo.com";
+
+        public void Write(string message)
+        {
+            Console.WriteLine($"Email sent to {AdminEmail} : {message}");
         }
     }
 
@@ -44,6 +59,12 @@ namespace AutofacSamples
         private Engine engine;
         private ILog log;
 
+        public Car(Engine engine)
+        {
+            this.engine = engine;
+            this.log = new EmailLog();
+        }
+
         public Car(Engine engine, ILog log)
         {
             this.engine = engine;
@@ -57,17 +78,51 @@ namespace AutofacSamples
         }
     }
 
+  
+
 
     class Program
     {
         static void Main(string[] args)
         {
-            var log2 = new ConsoleLog();
+            var builder = new ContainerBuilder();
+
+            //builder.RegisterType<ConsoleLog>().As<ILog>().AsSelf();
+            //builder.RegisterType<EmailLog>().As<ILog>().AsSelf();
+
+
+
+            builder.RegisterType<ConsoleLog>().As<ILog>();
             
-            
-            var log = new ConsoleLog();
-            var engine = new Engine(log);
-            var car = new Car(engine,log);
+
+            //builder.RegisterType<EmailLog>()
+            //    .As<ILog>();
+               
+
+
+
+
+
+            builder.RegisterType<Engine>();
+            builder.RegisterType<Car>()
+                //  .UsingConstructor(typeof(Engine)); or
+                .UsingConstructor(typeof(Engine), typeof(ILog));
+
+
+
+            //var log = new ConsoleLog();
+            //var engine = new Engine(log);
+            //var car = new Car(engine,log);
+
+            IContainer container = builder.Build();
+
+            //
+           // var log = container.Resolve<ConsoleLog>();
+
+           
+
+            var car = container.Resolve<Car>();
+
             car.Go();
         }
     }
